@@ -33,7 +33,7 @@ repositories {
 apply plugin: 'com.android.library'
 
 ext {
-    supportLibVersion = '23.1.1'
+    supportLibVersion = '23.2.0'
     versionName = '2.7.0'
 }
 
@@ -72,5 +72,5 @@ android {
 dependencies {
     compile "com.android.support:appcompat-v7:${supportLibVersion}"
     compile "com.android.support:mediarouter-v7:${supportLibVersion}"
-    compile 'com.google.android.gms:play-services-cast:8.1.0'
+    compile 'com.google.android.gms:play-services-cast:8.4.0'
 }
