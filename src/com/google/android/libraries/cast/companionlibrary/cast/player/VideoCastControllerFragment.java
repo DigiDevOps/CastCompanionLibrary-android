@@ -19,6 +19,7 @@ package com.google.android.libraries.cast.companionlibrary.cast.player;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaQueueItem;
@@ -43,6 +44,7 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -242,6 +244,16 @@ public class VideoCastControllerFragment extends Fragment implements
         }
 
         @Override
+        public void onMediaLoadResult(int statusCode) {
+            if (CastStatusCodes.SUCCESS != statusCode) {
+                LOGD(TAG, "onMediaLoadResult(): Failed to load media with status code: "
+                        + statusCode);
+                Utils.showToast(getActivity(), R.string.ccl_failed_to_load_media);
+                mCastController.closeActivity();
+            }
+        }
+
+        @Override
         public void onFailed(int resourceId, int statusCode) {
             LOGD(TAG, "onFailed(): " + getString(resourceId) + ", status code: " + statusCode);
             if (statusCode == RemoteMediaPlayer.STATUS_FAILED
@@ -366,23 +378,10 @@ public class VideoCastControllerFragment extends Fragment implements
                 && mSelectedMedia != null
                 && mCastManager.getTracksPreferenceManager().isCaptionEnabled()) {
             List<MediaTrack> tracks = mSelectedMedia.getMediaTracks();
-            state = hasAudioOrTextTrack(tracks) ? VideoCastController.CC_ENABLED
+            state = Utils.hasAudioOrTextTrack(tracks) ? VideoCastController.CC_ENABLED
                     : VideoCastController.CC_DISABLED;
         }
         mCastController.setClosedCaptionState(state);
-    }
-
-    private boolean hasAudioOrTextTrack(List<MediaTrack> tracks) {
-        if (tracks == null || tracks.isEmpty()) {
-            return false;
-        }
-        for (MediaTrack track : tracks) {
-            if (track.getType() == MediaTrack.TYPE_AUDIO
-                    || track.getType() == MediaTrack.TYPE_TEXT) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void stopTrickplayTimer() {
@@ -580,9 +579,6 @@ public class VideoCastControllerFragment extends Fragment implements
      * image to avoid unnecessary network calls.
      */
     private void showImage(final Uri uri) {
-        if (mImageAsyncTask != null) {
-            mImageAsyncTask.cancel(true);
-        }
         if (uri == null) {
             mCastController.setImage(BitmapFactory.decodeResource(getActivity().getResources(),
                     R.drawable.album_art_placeholder_large));
@@ -597,7 +593,8 @@ public class VideoCastControllerFragment extends Fragment implements
         if (mImageAsyncTask != null) {
             mImageAsyncTask.cancel(true);
         }
-        mImageAsyncTask = new FetchBitmapTask() {
+        Point screenSize = Utils.getDisplaySize(getActivity());
+        mImageAsyncTask = new FetchBitmapTask(screenSize.x, screenSize.y, false) {
             @Override
             protected void onPostExecute(Bitmap bitmap) {
                 if (bitmap != null) {
@@ -803,20 +800,7 @@ public class VideoCastControllerFragment extends Fragment implements
 
     @Override
     public void onTracksSelected(List<MediaTrack> tracks) {
-        long[] tracksArray;
-        if (tracks.isEmpty()) {
-            tracksArray = new long[]{};
-        } else {
-            tracksArray = new long[tracks.size()];
-            for (int i = 0; i < tracks.size(); i++) {
-                tracksArray[i] = tracks.get(i).getId();
-            }
-        }
-        mCastManager.setActiveTrackIds(tracksArray);
-        if (tracks.size() > 0) {
-            mCastManager.setTextTrackStyle(mCastManager.getTracksPreferenceManager()
-                    .getTextTrackStyle());
-        }
+        mCastManager.setActiveTracks(tracks);
     }
 
     /*
@@ -864,14 +848,14 @@ public class VideoCastControllerFragment extends Fragment implements
     }
 
     @Override
-    public void onSkipNextClicked(View v)
+    public void onSkipNextClicked(View view)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         mCastController.showLoading(true);
         mCastManager.queueNext(null);
     }
 
     @Override
-    public void onSkipPreviousClicked(View v)
+    public void onSkipPreviousClicked(View view)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         mCastController.showLoading(true);
         mCastManager.queuePrev(null);
