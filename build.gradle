@@ -21,7 +21,7 @@ buildscript {
         maven { url 'https://maven.google.com' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.0.0-alpha3'
     }
 }
 
@@ -35,18 +35,18 @@ repositories {
 apply plugin: 'com.android.library'
 
 ext {
-    supportLibVersion = '25.4.0'
+    supportLibVersion = '26.0.0-beta2'
     versionName = '2.8.4'
 }
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    compileSdkVersion 26
+    buildToolsVersion "26.0.0"
     publishNonDefault true
 
     defaultConfig {
         minSdkVersion 10
-        targetSdkVersion 25
+        targetSdkVersion 26
     }
 
     sourceSets {
@@ -59,14 +59,13 @@ android {
 
     buildTypes {
         debug {
-            libraryVariants.all { variant ->
-                variant.outputs.each { output ->
-                    output.outputFile = new File(output.outputFile.parent, output.outputFile.name.
-                            replace(".aar", "-${versionName}.aar"))
-                }
-            }
+//            libraryVariants.all { variant ->
+//                variant.outputs.each { output ->
+//                    output.outputFile = new File(output.outputFile.parent, output.outputFile.name.
+//                            replace(".aar", "-${versionName}.aar"))
+//                }
+//            }
         }
-
     }
 }
 
